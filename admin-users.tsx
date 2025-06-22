@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,6 +30,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Pencil, Trash2, Users, UserCheck, UserX } from "lucide-react"
 import { UserFilters } from "./components/user-filters"
+import { apiClient } from "./lib/utils"
+import { useHandleError } from "./components/handler-issues"
+import { ptBR } from "date-fns/locale/pt-BR"
+import { format } from "date-fns"
 
 interface User {
   id: number
@@ -41,40 +45,47 @@ interface User {
 }
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 1,
-      name: "João Silva",
-      email: "joao@exemplo.com",
-      role: "admin",
-      status: "active",
-      createdAt: "2024-01-15",
-    },
-    {
-      id: 2,
-      name: "Maria Santos",
-      email: "maria@exemplo.com",
-      role: "user",
-      status: "active",
-      createdAt: "2024-01-20",
-    },
-    {
-      id: 3,
-      name: "Pedro Costa",
-      email: "pedro@exemplo.com",
-      role: "moderator",
-      status: "inactive",
-      createdAt: "2024-02-01",
-    },
-    {
-      id: 4,
-      name: "Ana Oliveira",
-      email: "ana@exemplo.com",
-      role: "user",
-      status: "active",
-      createdAt: "2024-02-10",
-    },
-  ])
+  const [users, setUsers] = useState<User[]>([])
+  const {handlerError} = useHandleError();
+
+  function parseCustomDate(dateStr: string): Date {
+    if (!dateStr) return new Date(NaN);
+  
+    // separa a data e hora
+    const [datePart, timePart] = dateStr.split(", ");
+    if (!datePart || !timePart) return new Date(NaN);
+  
+    const [day, month, year] = datePart.split("/").map(Number);
+    const [hours, minutes, seconds] = timePart.split(":").map(Number);
+  
+    // montar date com new Date(ano, mêsIndexado, dia, horas, minutos, segundos)
+    return new Date(year, month - 1, day, hours, minutes, seconds);
+  }
+  
+  useEffect(() => {
+    async function getAllUsers() {
+      try {
+        const response = await apiClient.get("/users");
+  
+        const formattedUsers = response.data.data.map((user: any) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.isActive ? "active" : "inactive",
+          createdAt: format(parseCustomDate(user.createdAt), "dd/MM/yyyy", { locale: ptBR }),
+        }));
+  
+        setUsers(formattedUsers);
+      } catch (err: any) {
+        console.error("Erro ao buscar usuários:", err);
+        handlerError("Erro ao buscar usuários");
+      }
+    }
+  
+    getAllUsers();
+  }, []);
+  
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)

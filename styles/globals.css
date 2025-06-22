@@ -15,12 +15,12 @@ body {
 @layer base {
   :root {
     --background: 0 0% 100%; /* branco */
-    --foreground: 0 0% 10%;  /* texto preto suave */
+    --foreground: 0 0% 10%; /* texto preto suave */
 
     --primary: 160 100% 50%; /* #04BF7B em HSL aproximado */
     --primary-foreground: 0 0% 100%; /* branco */
 
-    --secondary: 0 0% 96%;   /* cinza claro */
+    --secondary: 0 0% 96%; /* cinza claro */
     --secondary-foreground: 0 0% 10%;
 
     --muted: 0 0% 95%;
@@ -37,7 +37,7 @@ body {
   }
 
   .dark {
-    --background: 0 0% 5%;  /* quase preto */
+    --background: 0 0% 5%; /* quase preto */
     --foreground: 0 0% 98%; /* texto branco */
 
     --primary: 160 100% 50%; /* #04BF7B */
@@ -59,7 +59,6 @@ body {
     --sidebar-border: 0 0% 20%;
   }
 }
-
 
 @layer base {
   * {

@@ -34,7 +34,7 @@ const menuItems = [
     category: "Geral",
     items: [
       { icon: Users, label: "Usuários", href: "/", active: true },
-      { icon: User, label: "Perfil", href: "/perfil" },
+      { icon: User, label: "Perfil", href: "/profile" },
     ],
   },
 ]
@@ -82,8 +82,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed }: SidebarProps) {
                         asChild
                       >
                         <a href={item.href} onClick={onClose} title={isCollapsed ? item.label : undefined}>
-                          <item.icon className="h-4 w-4 flex-shrink-0" />
-                          {!isCollapsed && <span className="text-sm">{item.label}</span>}
+                          <item.icon className="h-4 w-4 flex-shrink-0 text-[#04BF7B]" />
+                          {!isCollapsed && <span className="text-[#04BF7B]">{item.label}</span>}
                         </a>
                       </Button>
                     ))}
