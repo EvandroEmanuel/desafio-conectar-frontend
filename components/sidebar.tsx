@@ -22,6 +22,7 @@ import {
   X,
   User,
 } from "lucide-react"
+import { Permission } from "./permission"
 
 interface SidebarProps {
   isOpen: boolean
@@ -33,7 +34,7 @@ const menuItems = [
   {
     category: "Geral",
     items: [
-      { icon: Users, label: "Usuários", href: "/", active: true },
+      { icon: Users, label: "Usuários", href: "/dashboard", active: true },
       { icon: User, label: "Perfil", href: "/profile" },
     ],
   },
@@ -74,19 +75,36 @@ export function Sidebar({ isOpen, onClose, isCollapsed }: SidebarProps) {
                     </h3>
                   )}
                   <div className="space-y-1">
-                    {section.items.map((item) => (
+                    {section.items.map((sec) => {
+                      if(sec.href === "/dashboard") {
+                        return (
+                          <Permission key={ sec.href }>
+                            <Button
+                              variant={sec.active ? "secondary" : "ghost"}
+                              className={cn("w-full justify-start h-10", isCollapsed ? "px-2" : "px-3 gap-3")}
+                              asChild
+                            >
+                              <a href={sec.href} onClick={onClose} title={isCollapsed ? sec.label : undefined}>
+                                <sec.icon className="h-4 w-4 flex-shrink-0 text-[#04BF7B]" />
+                                {!isCollapsed && <span className="text-[#04BF7B]">{sec.label}</span>}
+                              </a>
+                            </Button>
+                          </Permission>
+                        )
+                      }
+                      return (
                       <Button
-                        key={item.label}
-                        variant={item.active ? "secondary" : "ghost"}
+                        key={sec.label}
+                        variant={sec.active ? "secondary" : "ghost"}
                         className={cn("w-full justify-start h-10", isCollapsed ? "px-2" : "px-3 gap-3")}
                         asChild
                       >
-                        <a href={item.href} onClick={onClose} title={isCollapsed ? item.label : undefined}>
-                          <item.icon className="h-4 w-4 flex-shrink-0 text-[#04BF7B]" />
-                          {!isCollapsed && <span className="text-[#04BF7B]">{item.label}</span>}
+                        <a href={sec.href} onClick={onClose} title={isCollapsed ? sec.label : undefined}>
+                          <sec.icon className="h-4 w-4 flex-shrink-0 text-[#04BF7B]" />
+                          {!isCollapsed && <span className="text-[#04BF7B]">{sec.label}</span>}
                         </a>
-                      </Button>
-                    ))}
+                      </Button>)
+                    })}
                   </div>
                 </div>
               ))}

@@ -26,6 +26,7 @@ export interface UserContextProps {
   setProfile: (profile: UserProfile | null) => void;
   roles: Array<typeof ROLES_OBJECT.ADMIN | typeof ROLES_OBJECT.USER>;
   setRoles: (roles: Array<typeof ROLES_OBJECT.ADMIN | typeof ROLES_OBJECT.USER>) => void;
+  sub: string
 }
 
 export const UserContext = createContext<UserContextProps | undefined>(
@@ -42,6 +43,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<Array<typeof ROLES_OBJECT.ADMIN | typeof ROLES_OBJECT.USER>>([]);
 
+  const [sub, setSub] = useState("") 
+
   console.log(isClient)
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       if (authData) {
         const parsedData: AuthData = JSON.parse(authData);
         setUser(parsedData.user);
+        setSub(parsedData.sub)
         setProfile(parsedData.profile);
         const roles = localStorage.getItem('roles');
         if (roles) {
@@ -65,8 +69,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const value = useMemo(
-    () => ({ user, setUser, profile, setProfile, roles, setRoles }),
-    [user, profile, roles]
+    () => ({ user, setUser, profile, setProfile, roles, setRoles, sub }),
+    [user, profile, roles, sub]
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,80 +9,93 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, Mail, Calendar, Shield, Edit, Save, X, Camera, Key, Bell, Palette } from "lucide-react"
+import { useUser } from "@/hooks/use-user"
+import { ROLES_OBJECT } from "@/config"
+import { useHandleError } from "./handler-issues"
+import { apiClient } from "@/lib/utils"
+
 
 interface UserProfile {
-  id: number
+  id: string
   name: string
   email: string
-  role: "admin" | "user" | "moderator"
+  role: typeof ROLES_OBJECT.ADMIN | typeof ROLES_OBJECT.USER
   status: "active" | "inactive"
   createdAt: string
-  avatar?: string
-  phone?: string
-  department?: string
-  lastLogin?: string
 }
 
 export default function UserProfile() {
+  const { sub } = useUser()
+  const { handlerError } = useHandleError()
   const [isEditing, setIsEditing] = useState(false)
   const [profile, setProfile] = useState<UserProfile>({
-    id: 1,
-    name: "Marcus Dev",
-    email: "marcus@fleetsmanage.com",
-    role: "admin",
-    status: "active",
-    createdAt: "2024-01-15",
-    phone: "(11) 99999-9999",
-    department: "EDUCAÇÃO",
-    lastLogin: "2024-12-21T19:46:24.000Z",
+    id: "",
+    name: "",
+    email: "",
+    role: ROLES_OBJECT.USER,
+    status: "inactive",
+    createdAt: "",
   })
 
   const [editForm, setEditForm] = useState({
-    name: profile.name,
-    email: profile.email,
-    phone: profile.phone || "",
-    department: profile.department || "",
+    name: "",
+    email: "",
   })
 
-  const handleSave = () => {
-    setProfile({
-      ...profile,
-      ...editForm,
-    })
-    setIsEditing(false)
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await apiClient.get("/users/me")
+        const data = res.data
+
+        setProfile({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          status: data.isActive ? "active" : "inactive",
+          createdAt: data.createdAt,
+        })
+
+        setEditForm({
+          name: data.name,
+          email: data.email,
+        })
+      } catch (error) {
+        handlerError("Erro ao carregar perfil")
+      }
+    }
+
+    fetchProfile()
+  }, [sub])
+
+  const handleSave = async () => {
+    try {
+      await apiClient.patch(`/users/me`, {
+        name: editForm.name,
+        email: editForm.email,
+      })
+
+      setProfile({ ...profile, ...editForm })
+      setIsEditing(false)
+    } catch (error) {
+      handlerError("Erro ao salvar perfil")
+    }
   }
 
   const handleCancel = () => {
     setEditForm({
       name: profile.name,
-      email: profile.email,
-      phone: profile.phone || "",
-      department: profile.department || "",
+      email: profile.email
     })
     setIsEditing(false)
   }
 
-  const getRoleBadgeVariant = (role: UserProfile["role"]) => {
-    switch (role) {
-      case "admin":
-        return "destructive"
-      case "moderator":
-        return "secondary"
-      default:
-        return "outline"
-    }
-  }
+  const getRoleBadgeVariant = (role: UserProfile["role"]) =>
+    role === "admin" ? "destructive" : "outline"
 
-  const getRoleLabel = (role: UserProfile["role"]) => {
-    switch (role) {
-      case "admin":
-        return "Administrador"
-      case "moderator":
-        return "Moderador"
-      default:
-        return "Usuário"
-    }
-  }
+  const getRoleLabel = (role: UserProfile["role"]) =>
+    role === "admin" ? "Administrador" : "Usuário"
 
   return (
     <div className="space-y-6">
@@ -99,7 +112,7 @@ export default function UserProfile() {
           <CardHeader className="text-center">
             <div className="relative mx-auto">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={profile.avatar || "/placeholder.svg"} alt={profile.name} />
+                <AvatarImage alt={profile.name} />
                 <AvatarFallback className="text-lg">
                   {profile.name
                     .split(" ")
@@ -123,16 +136,17 @@ export default function UserProfile() {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              Membro desde {new Date(profile.createdAt).toLocaleDateString("pt-BR")}
+              Membro desde{" "}
+              {profile.createdAt}
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Shield className="h-4 w-4" />
-              Último acesso: {new Date(profile.lastLogin || "").toLocaleDateString("pt-BR")}
+              Último acesso:{" "}
             </div>
           </CardContent>
         </Card>
 
-        {/* Main Content */}
+        {/* Main Info Tabs */}
         <div className="md:col-span-2">
           <Tabs defaultValue="personal" className="space-y-4">
             <TabsList className="grid w-full grid-cols-4">
@@ -169,71 +183,33 @@ export default function UserProfile() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome Completo</Label>
-                      {isEditing ? (
-                        <Input
-                          id="name"
-                          value={editForm.name}
-                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          {profile.name}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      {isEditing ? (
-                        <Input
-                          id="email"
-                          type="email"
-                          value={editForm.email}
-                          onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          {profile.email}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefone</Label>
-                      {isEditing ? (
-                        <Input
-                          id="phone"
-                          value={editForm.phone}
-                          onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                          placeholder="(11) 99999-9999"
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
-                          <span className="text-muted-foreground">📞</span>
-                          {profile.phone || "Não informado"}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="department">Departamento</Label>
-                      {isEditing ? (
-                        <Input
-                          id="department"
-                          value={editForm.department}
-                          onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
-                          <span className="text-muted-foreground">🏢</span>
-                          {profile.department || "Não informado"}
-                        </div>
-                      )}
-                    </div>
+                    {[
+                      { label: "Nome", id: "name", icon: <User />, field: "name" },
+                      { label: "Email", id: "email", icon: <Mail />, field: "email" },
+                      { label: "Telefone", id: "phone", icon: "📞", field: "phone" },
+                      { label: "Departamento", id: "department", icon: "🏢", field: "department" },
+                    ].map(({ label, id, icon, field }) => (
+                      <div key={id} className="space-y-2">
+                        <Label htmlFor={id}>{label}</Label>
+                        {isEditing ? (
+                          <Input
+                            id={id}
+                            value={editForm[field as keyof typeof editForm]}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                [field]: e.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                            <span className="text-muted-foreground">{icon}</span>
+                            {profile[field as keyof typeof profile] || "Não informado"}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -246,28 +222,15 @@ export default function UserProfile() {
                   <CardDescription>Gerencie sua senha e configurações de segurança</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Key className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">Senha</p>
-                          <p className="text-sm text-muted-foreground">Última alteração há 30 dias</p>
-                        </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Key className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Senha</p>
+                        <p className="text-sm text-muted-foreground">Última alteração há 30 dias</p>
                       </div>
-                      <Button variant="outline">Alterar Senha</Button>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Shield className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">Autenticação de Dois Fatores</p>
-                          <p className="text-sm text-muted-foreground">Adicione uma camada extra de segurança</p>
-                        </div>
-                      </div>
-                      <Button variant="outline">Configurar</Button>
-                    </div>
+                    <Button variant="outline">Alterar Senha</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -280,28 +243,16 @@ export default function UserProfile() {
                   <CardDescription>Configure como você deseja receber notificações</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Bell className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">Notificações por Email</p>
-                          <p className="text-sm text-muted-foreground">Receba atualizações importantes por email</p>
-                        </div>
+                  {/* Simples placeholders */}
+                  <div className="flex justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Bell className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Notificações por Email</p>
+                        <p className="text-sm text-muted-foreground">Receba por email</p>
                       </div>
-                      <Button variant="outline">Configurar</Button>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Bell className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">Notificações Push</p>
-                          <p className="text-sm text-muted-foreground">Receba notificações em tempo real</p>
-                        </div>
-                      </div>
-                      <Button variant="outline">Configurar</Button>
-                    </div>
+                    <Button variant="outline">Configurar</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -311,31 +262,18 @@ export default function UserProfile() {
               <Card>
                 <CardHeader>
                   <CardTitle>Preferências</CardTitle>
-                  <CardDescription>Personalize sua experiência no sistema</CardDescription>
+                  <CardDescription>Personalize sua experiência</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Palette className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">Tema</p>
-                          <p className="text-sm text-muted-foreground">Escolha entre tema claro ou escuro</p>
-                        </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Palette className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Tema</p>
+                        <p className="text-sm text-muted-foreground">Claro ou escuro</p>
                       </div>
-                      <Button variant="outline">Configurar</Button>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <span className="text-muted-foreground">🌐</span>
-                        <div>
-                          <p className="font-medium">Idioma</p>
-                          <p className="text-sm text-muted-foreground">Português (Brasil)</p>
-                        </div>
-                      </div>
-                      <Button variant="outline">Alterar</Button>
-                    </div>
+                    <Button variant="outline">Configurar</Button>
                   </div>
                 </CardContent>
               </Card>

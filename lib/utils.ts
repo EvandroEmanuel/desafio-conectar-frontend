@@ -6,6 +6,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { Filters, StorageData } from "@/types/global";
 import axios from "axios";
+import { ROLES_OBJECT } from "@/config";
+import { Lollipop } from "lucide-react";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -43,7 +45,8 @@ export const setLocalStorage = (
   token: string,
   name: string,
   sub: string,
-  user: { sub: string; name: string }
+  user: { sub: string; name: string },
+  role: typeof ROLES_OBJECT.ADMIN | typeof ROLES_OBJECT.USER
 ): string | null => {
   try {
     const decoded = jwtDecode<JwtPayload>(token);
@@ -61,6 +64,7 @@ export const setLocalStorage = (
 
     localStorage.setItem("auth_data", JSON.stringify(data));
     localStorage.setItem("client_token", token);
+    localStorage.setItem("roles", JSON.stringify([role]));
 
     return hash;
   } catch (error) {
@@ -100,11 +104,10 @@ export const removeLocalStorage = () => {
   localStorage.removeItem("client_token");
   localStorage.removeItem("profile");
   localStorage.removeItem("user");
+  localStorage.removeItem("roles")
 };
 
 export const queryParamsChangePage = (filters: Filters) => {
-  const newPage = filters?.page ? filters.page + 1 : 1;
-
   const validFilters = Object.entries(filters || {}).reduce(
     (acc, [key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
@@ -117,7 +120,6 @@ export const queryParamsChangePage = (filters: Filters) => {
 
   return {
     ...validFilters,
-    page: newPage,
   };
 };
 

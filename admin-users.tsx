@@ -33,14 +33,15 @@ import { UserFilters } from "./components/user-filters"
 import { apiClient } from "./lib/utils"
 import { useHandleError } from "./components/handler-issues"
 import { ptBR } from "date-fns/locale/pt-BR"
-import { format } from "date-fns"
+import { format, parse } from "date-fns"
 
 interface User {
-  id: number
+  id: string
   name: string
   email: string
-  role: "admin" | "user" | "moderator"
+  role: "admin" | "user" 
   status: "active" | "inactive"
+  isActive?: boolean 
   createdAt: string
 }
 
@@ -51,29 +52,28 @@ export default function AdminUsers() {
   function parseCustomDate(dateStr: string): Date {
     if (!dateStr) return new Date(NaN);
   
-    // separa a data e hora
     const [datePart, timePart] = dateStr.split(", ");
     if (!datePart || !timePart) return new Date(NaN);
   
     const [day, month, year] = datePart.split("/").map(Number);
     const [hours, minutes, seconds] = timePart.split(":").map(Number);
   
-    // montar date com new Date(ano, mêsIndexado, dia, horas, minutos, segundos)
     return new Date(year, month - 1, day, hours, minutes, seconds);
   }
+   
   
   useEffect(() => {
     async function getAllUsers() {
       try {
         const response = await apiClient.get("/users");
   
-        const formattedUsers = response.data.data.map((user: any) => ({
+        const formattedUsers = response.data.data.map((user: User) => ({
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
           status: user.isActive ? "active" : "inactive",
-          createdAt: format(parseCustomDate(user.createdAt), "dd/MM/yyyy", { locale: ptBR }),
+          createdAt: user.createdAt
         }));
   
         setUsers(formattedUsers);
@@ -95,6 +95,7 @@ export default function AdminUsers() {
     email: "",
     role: "user" as User["role"],
     status: "active" as User["status"],
+    password: ""
   })
 
   const [searchTerm, setSearchTerm] = useState("")
@@ -109,25 +110,40 @@ export default function AdminUsers() {
       email: "",
       role: "user",
       status: "active",
+      password: ""
     })
   }
 
-  const handleCreateUser = () => {
-    if (!formData.name || !formData.email) return
-
-    const newUser: User = {
-      id: Math.max(...users.map((u) => u.id)) + 1,
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-      status: formData.status,
-      createdAt: new Date().toISOString().split("T")[0],
+  const handleCreateUser = async () => {
+    if (!formData.name || !formData.email) return;
+  
+    try {
+      await apiClient.post("/users", {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password || undefined,
+        role: formData.role,
+        isActive: formData.status === "active",
+      });
+  
+      const response = await apiClient.get("/users");
+      const formattedUsers = response.data.data.map((user: any) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.isActive ? "active" : "inactive",
+        createdAt: format(parseCustomDate(user.createdAt), "dd/MM/yyyy", { locale: ptBR }),
+      }));
+  
+      setUsers(formattedUsers);
+      resetForm();
+      setIsCreateDialogOpen(false);
+    } catch (error) {
+      console.error("Erro ao criar usuário:", error);
+      handlerError("Erro ao criar usuário");
     }
-
-    setUsers([...users, newUser])
-    resetForm()
-    setIsCreateDialogOpen(false)
-  }
+  };
 
   const handleEditUser = (user: User) => {
     setEditingUser(user)
@@ -136,61 +152,97 @@ export default function AdminUsers() {
       email: user.email,
       role: user.role,
       status: user.status,
+      password: ""
     })
     setIsEditDialogOpen(true)
   }
 
-  const handleUpdateUser = () => {
-    if (!editingUser || !formData.name || !formData.email) return
+  const handleUpdateUser = async () => {
+    if (!editingUser || !formData.name || !formData.email) return;
+  
+    try {
+      apiClient.patch(`/users/${editingUser.id}`, {
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        isActive: formData.status === "active",
+      });
+      console.log("Payload enviado:", {
+        name: formData.name,
+        role: formData.role,
+        isActive: formData.status === "active",})
+        console.log("ID do usuário:", editingUser.id);
+  
+      const response = await apiClient.get("/users");
+      const formattedUsers = response.data.data.map((user: any) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.isActive ? "active" : "inactive",
+        createdAt: format(parseCustomDate(user.createdAt), "dd/MM/yyyy", { locale: ptBR }),
+      }));
+  
+      setUsers(formattedUsers);
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      console.error("Erro ao atualizar usuário:", error);
+      handlerError("Erro ao atualizar usuário");
+    }
+  };
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await apiClient.delete(`/users/${userId}`); 
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
+    } catch (error) {
+      console.error("Erro ao excluir usuário:", error);
+      handlerError("Erro ao excluir usuário");
+    }
+  };
 
-    setUsers(users.map((user) => (user.id === editingUser.id ? { ...user, ...formData } : user)))
-    resetForm()
-    setEditingUser(null)
-    setIsEditDialogOpen(false)
-  }
+ 
 
-  const handleDeleteUser = (userId: number) => {
-    setUsers(users.filter((user) => user.id !== userId))
-  }
+const filteredAndSortedUsers = users
+  .filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
 
-  const filteredAndSortedUsers = users
-    .filter((user) => {
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesRole = roleFilter === "all" || user.role === roleFilter
-      const matchesStatus = statusFilter === "all" || user.status === statusFilter
+    return matchesSearch && matchesRole && matchesStatus;
+  })
+  .sort((a, b) => {
+    let aValue: string | number;
+    let bValue: string | number;
 
-      return matchesSearch && matchesRole && matchesStatus
-    })
-    .sort((a, b) => {
-      let aValue: string | number
-      let bValue: string | number
+    switch (sortBy) {
+      case "name":
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+        break;
+      case "email":
+        aValue = a.email.toLowerCase();
+        bValue = b.email.toLowerCase();
+        break;
+      case "createdAt":
+        const parsedDateA = parse(a.createdAt, "dd/MM/yyyy, HH:mm:ss", new Date());
+        const parsedDateB = parse(b.createdAt, "dd/MM/yyyy, HH:mm:ss", new Date());
+        aValue = parsedDateA.getTime();
+        bValue = parsedDateB.getTime();
+        break;
+      default:
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+    }
 
-      switch (sortBy) {
-        case "name":
-          aValue = a.name.toLowerCase()
-          bValue = b.name.toLowerCase()
-          break
-        case "email":
-          aValue = a.email.toLowerCase()
-          bValue = b.email.toLowerCase()
-          break
-        case "createdAt":
-          aValue = new Date(a.createdAt).getTime()
-          bValue = new Date(b.createdAt).getTime()
-          break
-        default:
-          aValue = a.name.toLowerCase()
-          bValue = b.name.toLowerCase()
-      }
+    if (sortOrder === "asc") {
+      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+    } else {
+      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+    }
+  });
 
-      if (sortOrder === "asc") {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
-      }
-    })
 
   const handleClearFilters = () => {
     setSearchTerm("")
@@ -204,8 +256,6 @@ export default function AdminUsers() {
     switch (role) {
       case "admin":
         return "destructive"
-      case "moderator":
-        return "secondary"
       default:
         return "outline"
     }
@@ -260,6 +310,16 @@ export default function AdminUsers() {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="create-password">Senha</Label>
+                <Input
+                  id="create-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Digite a senha (opcional)"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="create-role">Função</Label>
                 <Select
                   value={formData.role}
@@ -270,7 +330,6 @@ export default function AdminUsers() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">Usuário</SelectItem>
-                    <SelectItem value="moderator">Moderador</SelectItem>
                     <SelectItem value="admin">Administrador</SelectItem>
                   </SelectContent>
                 </Select>
@@ -372,7 +431,7 @@ export default function AdminUsers() {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role === "admin" ? "Administrador" : user.role === "moderator" ? "Moderador" : "Usuário"}
+                      {user.role === "admin" ? "Administrador" : user.role === "user" ? "Usuário" : "Usuário"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -380,7 +439,7 @@ export default function AdminUsers() {
                       {user.status === "active" ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{new Date(user.createdAt).toLocaleDateString("pt-BR")}</TableCell>
+                  <TableCell>{user.createdAt}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
@@ -457,7 +516,6 @@ export default function AdminUsers() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">Usuário</SelectItem>
-                  <SelectItem value="moderator">Moderador</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
                 </SelectContent>
               </Select>

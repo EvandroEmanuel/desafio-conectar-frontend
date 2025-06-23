@@ -1,6 +1,5 @@
 import { ROLES_OBJECT } from "@/config";
 
-
 const { ADMIN, USER } = ROLES_OBJECT;
 
 export const CNH_CATEGORIES = ["A", "B", "C", "D", "E"] as const;
@@ -307,18 +306,10 @@ export interface AccountsReceivable extends AuditInfo {
 
 export interface UserDto {
   id?: string;
-  username: string;
+  name: string;
   password?: string;
-  passwordHash?: string;
-  socialName: string;
-  cpf: string;
-  email: string;
-  birthDate: string;
-  cep: string;
-  address: string;
-  secretaryId: string;
-  is_active?: boolean;
-  roles?: string;
+  isActive?: boolean;
+  role?: string;
 }
 
 export interface VehicleDto {
@@ -515,11 +506,10 @@ export interface ReceivingMethodDto {
 
 export interface Filters {
   search?: string;
-  is_active?: boolean;
+  isActive?: boolean;
   startDate?: string;
   finishDate?: string;
-  page?: number;
-  limit?: number;
+  role?: string;
 }
 
 export interface Post extends AuditInfo {

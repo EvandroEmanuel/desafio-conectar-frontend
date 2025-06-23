@@ -1,10 +1,9 @@
-
-import { fetchApi } from '@/lib/fetch-config';
-import type { GetUsers, UserDto } from '@/types/global';
+import { fetchApi } from "@/lib/fetch-config";
+import type { GetUsers, UserDto } from "@/types/global";
 
 export const userService = {
   getUsers: async (): Promise<GetUsers> => {
-    return fetchApi('/users');
+    return fetchApi("/users");
   },
 
   getUserById: async (id: string): Promise<any> => {
@@ -12,22 +11,22 @@ export const userService = {
   },
 
   createUser: async (data: UserDto) => {
-    return fetchApi('/users', {
-      method: 'POST',
+    return fetchApi("/users", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   updateUser: async (id: string, data: Partial<UserDto>) => {
     return fetchApi(`/users/${id}`, {
-      method: 'PUT',
+      method: "PATCh",
       body: JSON.stringify(data),
     });
   },
 
   deleteUser: async (id: string) => {
     return fetchApi(`/users/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   },
-}; 
+};

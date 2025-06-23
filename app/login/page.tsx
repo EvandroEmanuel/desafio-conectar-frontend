@@ -10,10 +10,10 @@ import { jwtDecode } from "jwt-decode";
 import { ROLES_OBJECT } from "@/config";
 import { toast } from "@/hooks/use-toast";
 import { useHandleError } from "@/components/handler-issues";
-
-export default function LoginPage() {
+ 
+export default function LoginPage() {  
   const {handlerError} = useHandleError();
-  const {setUser, setProfile} = useUser();
+  const {setUser, setRoles} = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,6 +36,7 @@ export default function LoginPage() {
           name: loginData.data.name,
           role: decodeToken.role
         };
+        setRoles([decodeToken.role])
 
         setUser(user);
 
@@ -44,6 +45,7 @@ export default function LoginPage() {
           loginData.data.name,
           loginData.data.sub,
           user,
+          decodeToken.role
         );
         toast({
           title: `${loginData?.message}`,
@@ -121,7 +123,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button
+          <button 
             type="button"
             className="flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition"
           >
@@ -132,7 +134,7 @@ export default function LoginPage() {
 
         <p className="text-sm text-gray-600 mt-4">
           Don’t have an account?{" "}
-          <a href="#" className="text-[#04BF7B] hover:underline">
+          <a href="/register" className="text-[#04BF7B] hover:underline">
             Sign up
           </a>
         </p>

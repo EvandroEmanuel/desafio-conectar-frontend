@@ -58,13 +58,57 @@ body {
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-border: 0 0% 20%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Corrige janelas flutuantes e dropdowns no light e dark mode */
+  [data-state="open"],
+  [role="listbox"],
+  [role="menu"],
+  [role="dialog"],
+  [role="tooltip"],
+  [role="combobox"],
+  .radix-select-content,
+  .radix-dropdown-menu-content,
+  .select-content,
+  .popover-content,
+  .dropdown-content,
+  .menu-content,
+  .select-dropdown,
+  .seletor-do-dropdown {
+    background-color: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .modal,
+  .dialog,
+  .popup {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border-radius: 0.5rem;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    z-index: 50;
+  }
+
+  .modal-backdrop,
+  .dialog-backdrop,
+  .popup-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 }
