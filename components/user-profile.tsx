@@ -149,7 +149,7 @@ export default function UserProfile() {
         {/* Main Info Tabs */}
         <div className="md:col-span-2">
           <Tabs defaultValue="personal" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-4 rounded-none">
               <TabsTrigger value="personal">Pessoal</TabsTrigger>
               <TabsTrigger value="security">Segurança</TabsTrigger>
               <TabsTrigger value="notifications">Notificações</TabsTrigger>

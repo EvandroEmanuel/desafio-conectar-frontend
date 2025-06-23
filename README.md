@@ -64,7 +64,7 @@ cd desafio-conectar-frontend
 ### 2. Instale as dependências
 
 ```bash
-npm install
+pnpm install
 # ou
 yarn install
 ```
@@ -82,7 +82,7 @@ NEXT_PUBLIC_API_URL=https://sua-api-no-render.com
 ### 4. Rode o projeto localmente
 
 ```bash
-npm run dev
+pnpm dev
 # ou
 yarn dev
 ```
@@ -124,7 +124,7 @@ Acesso a funcionalidades avançadas (ex: localização, autocomplete, mapas)
 
 Redução de atrito na jornada do usuário
 
-Reforçamos que a arquitetura da aplicação já foi pensada de forma modular e escalável, de modo que a adição dessa funcionalidade pode ser feita facilmente em ciclos futuros, sem comprometer a base atual do sistema.
+Reforço que a arquitetura da aplicação já foi pensada de forma modular e escalável, de modo que a adição dessa funcionalidade pode ser feita facilmente em ciclos futuros, sem comprometer a base atual do sistema.
 
 ## 🛠️ Melhorias futuras
 
